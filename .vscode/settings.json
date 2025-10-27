@@ -1,0 +1,8 @@
+    {
+      "editor.defaultFormatter": "svelte.svelte-vscode", // Set Prettier as the default formatter for general files
+      "editor.formatOnSave": true, // Enable format on save
+      "[svelte]": {
+        "editor.defaultFormatter": "svelte.svelte-vscode" // Set the Svelte extension's formatter for Svelte files
+      },
+      "prettier.documentSelectors": ["**/*.svelte"] // Ensure Prettier handles .svelte files if needed for other plugins
+    }

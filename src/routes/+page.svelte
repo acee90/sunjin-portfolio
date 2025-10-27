@@ -1,59 +1,127 @@
 <script>
-	import { onMount } from 'svelte';
 	import { gsap } from 'gsap';
 	import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
-	// 1. 플러그인 등록
 	gsap.registerPlugin(ScrollTrigger);
 
-	onMount(() => {
-		// 2. onMount 내부에서 ScrollTrigger 설정
-		gsap.to('.box', {
-			x: 500, // 스크롤이 다 내려갔을 때 x 위치
-			ease: 'none', // 'scrub'을 쓸 때는 'none'으로 해야 부드럽습니다.
+	// Svelte 5 바인딩을 사용하여 DOM 요소 참조
+	let track = $state();
+	let container = $state();
+
+	// $effect는 의존성이 변경될 때마다 실행됩니다
+	$effect(() => {
+		// track과 container가 모두 바인딩되면 GSAP 설정
+		if (!track || !container) return;
+
+		const panels = gsap.utils.toArray('.panel');
+
+		const ctx = gsap.to(track, {
+			// (패널 수 - 1) * 100% 만큼 왼쪽으로 이동
+			// 패널이 4개이므로 -300%
+			xPercent: -100 * (panels.length - 1),
+			ease: 'none', // scrub을 사용할 땐 'none'이 자연스럽습니다.
+
 			scrollTrigger: {
-				trigger: '.section-wrapper', // 애니메이션이 일어날 전체 영역
-				start: 'top top', // "영역의 top"이 "뷰포트의 top"에 닿을 때 시작
-				end: 'bottom bottom', // "영역의 bottom"이 "뷰포트의 bottom"에 닿을 때 끝
-				
-				// ⬇️ 이 부분이 핵심입니다!
-				scrub: true, // 스크롤 위치에 애니메이션을 1:1로 묶습니다. (true 또는 1, 2 등 숫자로 부드러움 조절 가능)
-				
+				// 1. 트리거 대상 (이 섹션이 고정됩니다)
+				trigger: container, // 바인딩된 요소 직접 사용
+
+				// 2. 고정(pin) 활성화
+				pin: true,
+
+				// 3. 스크롤 연동
+				scrub: 1,
+
+				// 4. 시작/끝 지점
+				start: 'top top',
+
+				// 스크롤이 얼마나 지속될지 결정
+				// 패널이 완전히 지나가려면 (패널 수 - 1) * 뷰포트 너비만큼 스크롤
+				end: () => '+=' + window.innerWidth * (panels.length - 1),
+
 				markers: true // 개발용 마커 (배포 시 제거)
 			}
 		});
+
+		// 클린업: 컴포넌트가 언마운트되면 ScrollTrigger 제거
+		return () => {
+			ctx.scrollTrigger?.kill();
+		};
 	});
 </script>
 
-<div class="section-wrapper">
-	<div class="box">
-		➡️
-	</div>
-</div>
+<section class="section section-1">
+	<h1>첫 번째 섹션</h1>
+	<p>여기는 일반 세로 스크롤 영역입니다.</p>
+	<p>아래로 스크롤하세요.</p>
+</section>
 
-<div style="height: 100vh; background-color: #eee;"></div>
-<div style="height: 100vh;"></div>
+<section class="panels-container" bind:this={container}>
+	<div class="panels-track" bind:this={track}>
+		<div class="panel panel-1">패널 1</div>
+		<div class="panel panel-2">패널 2</div>
+		<div class="panel panel-3">패널 3</div>
+		<div class="panel panel-4">패널 4</div>
+	</div>
+</section>
+
+<section class="section section-3 bg-green">
+	<h1>세 번째 섹션</h1>
+	<p>가로 스크롤이 모두 끝나면</p>
+	<p>다시 일반 세로 스크롤이 시작됩니다.</p>
+</section>
 
 <style>
-	/* 스크롤 영역을 고정(pin)하지 않으면 스크롤과 함께 요소가 위로 올라가 버립니다. */
-	/* 여기서는 간단한 예시를 위해 wrapper의 높이를 지정합니다. */
-	.section-wrapper {
-		height: 200vh; /* 스크롤할 수 있는 넉넉한 높이 (pin을 안 쓸 경우) */
-		padding-top: 100px;
-		overflow-x: hidden; /* 가로 스크롤바 방지 */
-	}
-
-	.box {
-		width: 100px;
-		height: 100px;
-		background-color: royalblue;
-		color: white;
+	.section {
+		height: 100vh;
 		display: grid;
 		place-items: center;
-		font-size: 2rem;
+		text-align: center;
+	}
+	.section-1 {
+		background-color: #f0f0f0;
+	}
+	.section-3 {
+		background-color: #f0f0f0;
 	}
 
-	body {
-		margin: 0;
+	/* 'pin' 될 섹션. 
+    뷰포트 크기와 정확히 일치해야 하며, 
+    내부 'track'이 넘칠 수 있도록 overflow: hidden 처리를 합니다.
+  */
+	.panels-container {
+		height: 100vh;
+		width: 100vw;
+		overflow: hidden;
+	}
+
+	/* 패널들을 가로로 배치할 트랙 */
+	.panels-track {
+		height: 100%;
+		display: flex;
+		/* 패널이 4개이므로 400%의 너비 */
+		width: 400%;
+		will-change: transform; /* 애니메이션 성능 최적화 */
+	}
+
+	.panel {
+		height: 100%;
+		width: 100%; /* 400% 너비의 1/4 = 100% (뷰포트 너비) */
+		display: grid;
+		place-items: center;
+		font-size: 3rem;
+		color: white;
+	}
+
+	.panel-1 {
+		background-color: #61a0af;
+	}
+	.panel-2 {
+		background-color: #ff9a8d;
+	}
+	.panel-3 {
+		background-color: #6a6a6a;
+	}
+	.panel-4 {
+		background-color: #3b7696;
 	}
 </style>
