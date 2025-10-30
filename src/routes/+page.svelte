@@ -16,9 +16,11 @@
 		const panels = gsap.utils.toArray('.panel');
 
 		const ctx = gsap.to(track, {
-			// (패널 수 - 1) * 100% 만큼 왼쪽으로 이동
-			// 패널이 4개이므로 -300%
-			xPercent: -100 * (panels.length - 1),
+			xPercent: -80,
+			// 	 만약 xPercent: -100%라면:
+			//   - track이 500vw만큼 왼쪽으로 이동
+			//   - 그러면 track의 끝부분이 뷰포트 왼쪽 경계에 와서
+			//   - 아무것도 보이지 않게 됩니다!
 			ease: 'none', // scrub을 사용할 땐 'none'이 자연스럽습니다.
 
 			scrollTrigger: {
@@ -35,8 +37,8 @@
 				start: 'top top',
 
 				// 스크롤이 얼마나 지속될지 결정
-				// 패널이 완전히 지나가려면 (패널 수 - 1) * 뷰포트 너비만큼 스크롤
-				end: () => '+=' + window.innerWidth * (panels.length - 1),
+				// track의 실제 너비에서 뷰포트를 뺀 값 = 실제로 이동해야 할 거리
+				end: () => '+=' + (track.offsetWidth - window.innerWidth),
 
 				markers: true // 개발용 마커 (배포 시 제거)
 			}
@@ -61,6 +63,7 @@
 		<div class="panel panel-2">패널 2</div>
 		<div class="panel panel-3">패널 3</div>
 		<div class="panel panel-4">패널 4</div>
+		<div class="panel panel-5">패널 5</div>
 	</div>
 </section>
 
@@ -84,8 +87,8 @@
 		background-color: #f0f0f0;
 	}
 
-	/* 'pin' 될 섹션. 
-    뷰포트 크기와 정확히 일치해야 하며, 
+	/* 'pin' 될 섹션.
+    뷰포트 크기와 정확히 일치해야 하며,
     내부 'track'이 넘칠 수 있도록 overflow: hidden 처리를 합니다.
   */
 	.panels-container {
@@ -98,14 +101,16 @@
 	.panels-track {
 		height: 100%;
 		display: flex;
-		/* 패널이 4개이므로 400%의 너비 */
-		width: 400%;
+		width: 500vw;
 		will-change: transform; /* 애니메이션 성능 최적화 */
+		/* 트랙의 오른쪽 끝 표시 */
+		position: relative;
 	}
 
 	.panel {
 		height: 100%;
-		width: 100%; /* 400% 너비의 1/4 = 100% (뷰포트 너비) */
+		width: 100vw;
+		flex-shrink: 0; /* flex 컨테이너에서 크기 축소 방지 */
 		display: grid;
 		place-items: center;
 		font-size: 3rem;
@@ -123,5 +128,9 @@
 	}
 	.panel-4 {
 		background-color: #3b7696;
+	}
+
+	.panel-5 {
+		background-color: burlywood;
 	}
 </style>
